@@ -112,7 +112,7 @@ export default function SettingsPage() {
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                     <input
                       type="email"
-                      defaultValue={user?.email}
+                      defaultValue={user?.email ?? ""}
                       className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                     />
                   </div>

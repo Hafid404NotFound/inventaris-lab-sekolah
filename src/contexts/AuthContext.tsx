@@ -9,6 +9,7 @@ export interface AuthUser {
   id: string;
   nup: string;
   name: string;
+  email?: string | null;
   role: UserRole;
   lab_id?: string | null;
 }
@@ -73,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: data.id,
         nup: data.nup,
         name: data.name,
+        email: data.email || null,
         role: "peserta",
         lab_id: data.lab_id || null,
       };

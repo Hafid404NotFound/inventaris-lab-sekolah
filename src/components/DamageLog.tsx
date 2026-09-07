@@ -17,7 +17,7 @@ interface DamageLog {
 
 interface DamageLogProps {
   damages: DamageLog[]
-  onAdd?: (damage: Omit<DamageLog, 'id' | 'reportedAt'>) => void
+  onAdd?: (damage: Omit<DamageLog, 'id'>) => void
 }
 
 export default function DamageLog({ damages, onAdd }: DamageLogProps) {

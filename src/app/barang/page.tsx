@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -45,7 +45,7 @@ function truncateWords(text?: string | null, maxWords: number = 5): string {
   return words.slice(0, maxWords).join(" ") + "...";
 }
 
-export default function GoodsPage() {
+function GoodsPageContent() {
   const searchParams = useSearchParams();
   const roomId = searchParams.get("room_id") || undefined;
 
@@ -369,5 +369,13 @@ export default function GoodsPage() {
         )}
       </DashboardLayout>
     </AuthGuard>
+  );
+}
+
+export default function GoodsPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Memuat data barang...</div>}>
+      <GoodsPageContent />
+    </Suspense>
   );
 }

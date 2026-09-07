@@ -258,10 +258,8 @@ export default function LabsPage() {
       head: [["No", "Kode Lab", "Nama Lab", "Keterangan", "Jumlah Ruangan"]],
       body: tableData,
       startY: 45,
-      styles: {
-        head: { fillColor: [5, 150, 105], textColor: 255 },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-      },
+      headStyles: { fillColor: [5, 150, 105], textColor: 255 },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
       columnStyles: {
         0: { cellWidth: 10 },
         1: { cellWidth: 25 },

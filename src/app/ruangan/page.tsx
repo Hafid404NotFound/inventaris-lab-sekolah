@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, Printer, Lock } from "lucide-react";
@@ -16,7 +16,7 @@ type RoomWithCount = Room & {
   items?: { count: number }[];
 };
 
-export default function RoomsPage() {
+function RoomsPageContent() {
   const searchParams = useSearchParams();
   const paramLabId = searchParams.get("lab_id") || undefined;
 
@@ -350,5 +350,13 @@ export default function RoomsPage() {
         )}
       </DashboardLayout>
     </AuthGuard>
+  );
+}
+
+export default function RoomsPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Memuat data ruangan...</div>}>
+      <RoomsPageContent />
+    </Suspense>
   );
 }
