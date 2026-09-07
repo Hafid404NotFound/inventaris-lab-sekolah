@@ -7,13 +7,11 @@ import {
   Package,
   FlaskConical,
   AlertTriangle,
-  BookOpen,
   TrendingUp,
   Clock,
 } from "lucide-react";
 import { getLabs } from "@/lib/supabase-labs";
 import { getItems } from "@/lib/supabase-items";
-import { getActiveLoans } from "@/lib/supabase-loans";
 import Link from "next/link";
 
 export default function DashboardPage() {
@@ -22,7 +20,6 @@ export default function DashboardPage() {
     totalItems: 0,
     totalLabs: 0,
     lowStockAlerts: 0,
-    activeLoans: 0,
   });
   const [recentLabs, setRecentLabs] = useState<Lab[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,10 +30,9 @@ export default function DashboardPage() {
         setLoading(true);
         
         // Fetch all data in parallel
-        const [labs, items, activeLoans] = await Promise.all([
+        const [labs, items] = await Promise.all([
           getLabs(),
           getItems(),
-          getActiveLoans(),
         ]);
 
         // Calculate stats
@@ -45,13 +41,10 @@ export default function DashboardPage() {
         const lowStockAlerts = items?.filter(
           (item: any) => item.available_qty <= item.min_stock_alert
         ).length || 0;
-        const activeLoansCount = activeLoans?.length || 0;
-
         setStats({
           totalItems,
           totalLabs,
           lowStockAlerts,
-          activeLoans: activeLoansCount,
         });
 
         setRecentLabs(labs || []);
@@ -62,7 +55,6 @@ export default function DashboardPage() {
           totalItems: 0,
           totalLabs: 0,
           lowStockAlerts: 0,
-          activeLoans: 0,
         });
         setRecentLabs([]);
       } finally {
@@ -94,13 +86,6 @@ export default function DashboardPage() {
       icon: AlertTriangle,
       color: "bg-amber-500",
       trend: "+2",
-    },
-    {
-      title: "Sedang Dipinjam",
-      value: stats.activeLoans,
-      icon: BookOpen,
-      color: "bg-purple-500",
-      trend: "+5",
     },
   ];
 
@@ -203,25 +188,11 @@ export default function DashboardPage() {
             <span className="text-sm">Tambah Item</span>
           </Link>
           <Link
-            href="/dashboard/loans"
-            className="bg-white/20 hover:bg-white/30 transition rounded-lg p-4 text-center block"
-          >
-            <BookOpen className="w-6 h-6 mx-auto mb-2" />
-            <span className="text-sm">Catat Peminjaman</span>
-          </Link>
-          <Link
             href="/dashboard/labs"
             className="bg-white/20 hover:bg-white/30 transition rounded-lg p-4 text-center block"
           >
             <FlaskConical className="w-6 h-6 mx-auto mb-2" />
             <span className="text-sm">Kelola Lab</span>
-          </Link>
-          <Link
-            href="/dashboard/reports/inventory"
-            className="bg-white/20 hover:bg-white/30 transition rounded-lg p-4 text-center block"
-          >
-            <AlertTriangle className="w-6 h-6 mx-auto mb-2" />
-            <span className="text-sm">Cek Stok</span>
           </Link>
         </div>
       </div>

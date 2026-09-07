@@ -10,13 +10,10 @@ import {
   FlaskConical,
   Package,
   ScanLine,
-  BookOpen,
-  FileText,
   Settings,
   LogOut,
   Menu,
-  School,
-  Printer
+  School
 } from 'lucide-react'
 
 interface DashboardLayoutProps {
@@ -29,9 +26,6 @@ const navigation = [
   { name: 'Ruangan', href: '/ruangan', icon: School },
   { name: 'Barang', href: '/dashboard/items', icon: Package },
   { name: 'Scan QR', href: '/dashboard/scan', icon: ScanLine },
-  { name: 'Peminjaman', href: '/dashboard/loans', icon: BookOpen },
-  { name: 'Laporan', href: '/dashboard/reports', icon: FileText },
-  { name: 'Laporan Resmi', href: '/dashboard/reports/inventory', icon: Printer },
   { name: 'Pengaturan', href: '/dashboard/settings', icon: Settings },
 ]
 
