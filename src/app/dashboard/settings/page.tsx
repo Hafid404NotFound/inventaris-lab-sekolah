@@ -167,8 +167,8 @@ export default function SettingsPage() {
     setSaveMessage("");
     const nup = participantForm.nup.trim();
     const name = participantForm.name.trim();
-    if (!nup || !name || (!participantForm.id && !participantForm.password)) {
-      setErrorMessage("NUP, nama, dan password wajib diisi untuk peserta baru.");
+    if (!nup || !name) {
+      setErrorMessage("NUP dan nama peserta wajib diisi.");
       return;
     }
     setParticipantSaving(true);
@@ -178,7 +178,9 @@ export default function SettingsPage() {
         name,
         email: participantForm.email.trim() || null,
         role: participantForm.role || "peserta",
-        ...(participantForm.password ? { password: participantForm.password } : {}),
+        ...(participantForm.id
+          ? (participantForm.password ? { password: participantForm.password } : {})
+          : { password: nup }),
       };
       const query = participantForm.id
         ? supabase.from("participant_accounts").update(payload).eq("id", participantForm.id).select("id, nup, name, email, role, lab_id").single()
@@ -386,17 +388,19 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Password {participantForm.id && <span className="font-normal text-slate-500">(kosongkan jika tidak berubah)</span>}
+                    Password
                   </label>
                   <input
                     type="password"
-                    value={participantForm.password}
+                    value={participantForm.id ? participantForm.password : participantForm.nup}
                     onChange={(event) => setParticipantForm({ ...participantForm, password: event.target.value })}
-                    required={!participantForm.id}
-                    minLength={6}
+                    disabled={!participantForm.id}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Minimal 6 karakter"
+                    placeholder={participantForm.id ? "Kosongkan jika tidak berubah" : "Otomatis sama dengan NUP"}
                   />
+                  <p className="text-xs text-slate-500 mt-1">
+                    {participantForm.id ? "Kosongkan jika password tidak ingin diubah." : "Password peserta baru otomatis sama dengan NUP."}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Email (opsional)</label>
