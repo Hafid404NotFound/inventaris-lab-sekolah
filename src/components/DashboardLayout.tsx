@@ -63,7 +63,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <School className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">LabKu</h1>
+              <h1 className="text-xl font-bold">inventoriUM</h1>
               <p className="text-xs text-slate-400">Manajemen Lab Sekolah</p>
             </div>
           </div>
@@ -130,7 +130,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <Menu className="w-6 h-6 text-slate-600" />
             </button>
             <div className="flex-1 lg:hidden">
-              <h1 className="text-lg font-semibold text-slate-800">LabKu</h1>
+              <h1 className="text-lg font-semibold text-slate-800">inventoriUM</h1>
             </div>
             <div className="hidden lg:block">
               <h2 className="text-lg font-semibold text-slate-800">
