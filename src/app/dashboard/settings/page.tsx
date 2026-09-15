@@ -116,6 +116,7 @@ export default function SettingsPage() {
     setErrorMessage("");
 
     try {
+      const warnings: string[] = [];
       if (!profile.name.trim()) throw new Error("Nama lengkap wajib diisi.");
       if (security.newPassword || security.confirmPassword || security.currentPassword) {
         if (!security.currentPassword || !security.newPassword) {
@@ -134,10 +135,11 @@ export default function SettingsPage() {
           .eq("password", security.currentPassword)
           .maybeSingle();
         if (!account) throw new Error("Password saat ini salah.");
-        await supabase
+        const { error: passwordError } = await supabase
           .from("participant_accounts")
           .update({ password: security.newPassword })
           .eq("id", user.id);
+        if (passwordError) throw passwordError;
       }
 
       const { error: profileError } = await supabase
@@ -157,7 +159,18 @@ export default function SettingsPage() {
           website: school.website.trim() || null,
           email: school.email.trim() || null,
         }, { onConflict: "id" });
-      if (schoolError) throw schoolError;
+      if (schoolError) {
+        // Keep core school data working when the optional migration is not installed yet.
+        const { error: fallbackSchoolError } = await supabase
+          .from("schools")
+          .upsert({
+            id: schoolId,
+            name: school.name.trim() || "Sekolah",
+            address: school.address.trim() || null,
+          }, { onConflict: "id" });
+        if (fallbackSchoolError) throw fallbackSchoolError;
+        warnings.push("Data NPSN, website, dan email sekolah menunggu migration Supabase.");
+      }
 
       const { error: settingsError } = await supabase
         .from("user_settings")
@@ -168,16 +181,23 @@ export default function SettingsPage() {
           system,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
-      if (settingsError) throw settingsError;
+      if (settingsError) {
+        warnings.push("Preferensi telepon/notifikasi tersimpan di perangkat ini. Jalankan migration Supabase agar tersimpan lintas perangkat.");
+      }
 
       const settings = { profile, school, notifications, system };
       localStorage.setItem("inventorium_settings", JSON.stringify(settings));
       localStorage.setItem("inventorium_user", JSON.stringify({ ...user, name: profile.name.trim(), email: profile.email.trim() || null }));
       updateUser({ name: profile.name.trim(), email: profile.email.trim() || null });
       setSecurity({ currentPassword: "", newPassword: "", confirmPassword: "" });
-      setSaveMessage("Pengaturan berhasil disimpan.");
+      setSaveMessage(
+        warnings.length > 0
+          ? `Pengaturan tersimpan dengan catatan: ${warnings.join(" ")}`
+          : "Pengaturan berhasil disimpan.",
+      );
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Pengaturan gagal disimpan.");
+      const message = error instanceof Error ? error.message : "Kesalahan tidak diketahui";
+      setErrorMessage(`Pengaturan gagal disimpan: ${message}`);
     } finally {
       setSaving(false);
     }
