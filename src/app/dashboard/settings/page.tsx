@@ -31,6 +31,7 @@ export default function SettingsPage() {
   const [school, setSchool] = useState({
     name: "SMA Negeri 1 Jakarta",
     address: "Jl. Pendidikan No. 1, Jakarta Pusat",
+    npsn: "",
     website: "",
     email: "",
   });
@@ -69,6 +70,35 @@ export default function SettingsPage() {
         localStorage.removeItem("inventorium_settings");
       }
     }
+
+    if (!user) return;
+    const loadDatabaseSettings = async () => {
+      try {
+        const schoolId = await getOrCreateDefaultSchool();
+        const [{ data: schoolData }, { data: userSettings }] = await Promise.all([
+          supabase
+            .from("schools")
+            .select("name, address, npsn, website, email")
+            .eq("id", schoolId)
+            .maybeSingle(),
+          supabase
+            .from("user_settings")
+            .select("phone, notifications, system")
+            .eq("user_id", user.id)
+            .maybeSingle(),
+        ]);
+
+        if (schoolData) setSchool((current) => ({ ...current, ...schoolData }));
+        if (userSettings) {
+          setProfile((current) => ({ ...current, phone: userSettings.phone || "" }));
+          setNotifications((current) => ({ ...current, ...(userSettings.notifications || {}) }));
+          setSystem((current) => ({ ...current, ...(userSettings.system || {}) }));
+        }
+      } catch (error) {
+        console.warn("Pengaturan Supabase belum tersedia, memakai penyimpanan lokal:", error);
+      }
+    };
+    void loadDatabaseSettings();
   }, [user]);
 
   const tabs = [
@@ -119,8 +149,26 @@ export default function SettingsPage() {
       const schoolId = await getOrCreateDefaultSchool();
       const { error: schoolError } = await supabase
         .from("schools")
-        .upsert({ id: schoolId, name: school.name.trim() || "Sekolah", address: school.address.trim() || null }, { onConflict: "id" });
+        .upsert({
+          id: schoolId,
+          name: school.name.trim() || "Sekolah",
+          address: school.address.trim() || null,
+          npsn: school.npsn.trim() || null,
+          website: school.website.trim() || null,
+          email: school.email.trim() || null,
+        }, { onConflict: "id" });
       if (schoolError) throw schoolError;
+
+      const { error: settingsError } = await supabase
+        .from("user_settings")
+        .upsert({
+          user_id: user.id,
+          phone: profile.phone.trim() || null,
+          notifications,
+          system,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+      if (settingsError) throw settingsError;
 
       const settings = { profile, school, notifications, system };
       localStorage.setItem("inventorium_settings", JSON.stringify(settings));
@@ -297,6 +345,8 @@ export default function SettingsPage() {
                   </label>
                   <input
                     type="text"
+                    value={school.npsn}
+                    onChange={(event) => setSchool({ ...school, npsn: event.target.value })}
                     placeholder="Nomor Pokok Sekolah Nasional"
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                   />
