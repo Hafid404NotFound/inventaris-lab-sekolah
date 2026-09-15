@@ -14,13 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LabKu - Sistem Manajemen Lab Sekolah",
+  title: "inventoriUM - Sistem Manajemen Lab Sekolah",
   description: "Sistem Manajemen & Inventaris Lab Sekolah",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "LabKu",
+    title: "inventoriUM",
   },
 };
 

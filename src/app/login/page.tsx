@@ -51,7 +51,7 @@ export default function LoginPage() {
             <School className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">
-            Inventorium
+            inventoriUM
           </h1>
           <p className="text-xs font-medium text-slate-500 mt-1 uppercase tracking-wider">
             Portal Inventaris Laboratorium Berbasis Peserta
@@ -123,7 +123,7 @@ export default function LoginPage() {
         {/* Footer Sub-Info */}
         <div className="mt-8 pt-4 border-t border-slate-100 text-center">
           <p className="text-[11px] text-slate-400">
-            Hak Cipta © 2026 Inventorium Laboratorium.
+            Hak Cipta © 2026 inventoriUM Laboratorium.
           </p>
         </div>
       </div>

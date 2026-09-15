@@ -28,19 +28,17 @@ export default function DashboardPage() {
     async function fetchDashboardData() {
       try {
         setLoading(true);
-        
+
         // Fetch all data in parallel
-        const [labs, items] = await Promise.all([
-          getLabs(),
-          getItems(),
-        ]);
+        const [labs, items] = await Promise.all([getLabs(), getItems()]);
 
         // Calculate stats
         const totalItems = items?.length || 0;
         const totalLabs = labs?.length || 0;
-        const lowStockAlerts = items?.filter(
-          (item: any) => item.available_qty <= item.min_stock_alert
-        ).length || 0;
+        const lowStockAlerts =
+          items?.filter(
+            (item: any) => item.available_qty <= item.min_stock_alert,
+          ).length || 0;
         setStats({
           totalItems,
           totalLabs,
@@ -189,7 +187,8 @@ export default function DashboardPage() {
           </Link>
           <Link
             href="/dashboard/labs"
-            className="bg-white/20 hover:bg-white/30 transition rounded-lg p-4 text-center block"
+            classNa
+            e="bg-white/20 hover:bg-white/30 transition rounded-lg p-4 text-center block"
           >
             <FlaskConical className="w-6 h-6 mx-auto mb-2" />
             <span className="text-sm">Kelola Lab</span>
