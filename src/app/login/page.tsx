@@ -41,7 +41,7 @@ export default function LoginPage() {
       />
 
       {/* Dark Overlay Gradient untuk Meningkatkan Kontras & Keterbacaan */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-950/85 via-slate-900/75 to-emerald-950/80 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-linear-to-br from-slate-950/85 via-slate-900/75 to-emerald-950/80 backdrop-blur-[2px]" />
 
       {/* Card Form Glassmorphism */}
       <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 border border-white/20 sm:p-10">

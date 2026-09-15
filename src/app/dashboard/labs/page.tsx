@@ -12,7 +12,6 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  FlaskConical,
   Plus,
   Search,
   Edit,
@@ -25,14 +24,18 @@ import Link from "next/link";
 import jsPDF from "jspdf";
 import { autoTable } from "jspdf-autotable";
 
+type LabWithRoomCount = Lab & {
+  rooms?: { count: number }[];
+};
+
 export default function LabsPage() {
   const { user } = useAuth();
-  const [labs, setLabs] = useState<any[]>([]);
+  const [labs, setLabs] = useState<LabWithRoomCount[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedLab, setSelectedLab] = useState<any | null>(null);
+  const [selectedLab, setSelectedLab] = useState<LabWithRoomCount | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false); // Flag anti-spam submit
   const [entriesPerPage, setEntriesPerPage] = useState(10);
@@ -67,10 +70,12 @@ export default function LabsPage() {
   };
 
   useEffect(() => {
+    // This effect loads remote data and intentionally updates loading state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadLabs();
   }, []);
 
-  const isLabOwner = (lab: any) => {
+  const isLabOwner = (lab: LabWithRoomCount) => {
     if (!user) return false;
     if (user.role === "super_admin") return true;
     return (
@@ -129,7 +134,7 @@ export default function LabsPage() {
     }
   };
 
-  const openEditLab = (lab: any) => {
+  const openEditLab = (lab: LabWithRoomCount) => {
     if (!isLabOwner(lab)) {
       alert(
         "Akses ditolak: Anda hanya dapat mengedit laboratorium milik Anda sendiri.",
@@ -228,7 +233,7 @@ export default function LabsPage() {
   const endIndex = startIndex + entriesPerPage;
   const paginatedLabs = filteredLabs.slice(startIndex, endIndex);
 
-  const getRoomCount = (lab: any) => {
+  const getRoomCount = (lab: LabWithRoomCount) => {
     return lab.rooms?.[0]?.count || 0;
   };
 
@@ -269,7 +274,9 @@ export default function LabsPage() {
       },
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    const finalY =
+      (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable
+        .finalY + 10;
     doc.setFontSize(10);
     doc.text(`Total Lab: ${filteredLabs.length}`, 14, finalY);
     doc.text(
@@ -363,7 +370,7 @@ export default function LabsPage() {
       {/* Tabel Lab */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px]">
+          <table className="w-full min-w-190">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider border-r border-slate-200 w-16">

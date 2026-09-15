@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Test script untuk koneksi Supabase
 // Jalankan dengan: node test-supabase-connection.js
 

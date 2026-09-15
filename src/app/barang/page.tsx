@@ -74,7 +74,7 @@ function GoodsPageContent() {
 
       setItems((itemData || []) as ItemRow[]);
       setRoomName(room?.name || "");
-      setRoomLabId((room as any)?.lab_id || null);
+      setRoomLabId(room?.lab_id || null);
       setLabs((labsData || []) as Lab[]);
     } catch (error) {
       console.error("Error loading goods:", error);
@@ -84,7 +84,11 @@ function GoodsPageContent() {
   };
 
   useEffect(() => {
+    // This effect loads remote data and intentionally updates loading state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadData();
+    // loadData closes over the selected room filter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
 
   // Hak Akses: Cek apakah user berhak menambah barang di halaman ini
@@ -121,9 +125,11 @@ function GoodsPageContent() {
 
       setShowFormModal(false);
       setSelectedItem(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving item:", err);
-      alert(`Gagal menyimpan: ${err.message || "Terjadi kesalahan"}`);
+      alert(
+        `Gagal menyimpan: ${err instanceof Error ? err.message : "Terjadi kesalahan"}`,
+      );
     }
   };
 
@@ -136,10 +142,10 @@ function GoodsPageContent() {
         setShowDeleteModal(false);
         setSelectedItem(null);
         alert("Barang berhasil dihapus!");
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error deleting item:", err);
         alert(
-          `Gagal menghapus: ${err.message || "Barang ini bukan milik akun Anda"}`,
+          `Gagal menghapus: ${err instanceof Error ? err.message : "Barang ini bukan milik akun Anda"}`,
         );
       }
     }

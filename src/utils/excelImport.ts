@@ -94,26 +94,34 @@ export async function parseExcelFile(file: File): Promise<{
         const workbook = XLSX.read(data, { type: 'binary' })
         const sheetName = workbook.SheetNames[0]
         const worksheet = workbook.Sheets[sheetName]
-        const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[]
+        const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[]
+        const getString = (row: Record<string, unknown>, key: string) => {
+          const value = row[key]
+          return typeof value === 'string' || typeof value === 'number' ? String(value) : undefined
+        }
+        const getNumber = (row: Record<string, unknown>, key: string) => {
+          const value = row[key]
+          return typeof value === 'number' ? value : undefined
+        }
 
         const errors: string[] = []
         const validData: ExcelItemData[] = []
 
         jsonData.forEach((row, index) => {
           const item: ExcelItemData = {
-            nama: row['Nama Item'] || row['nama'],
-            kode: row['Kode Barang'] || row['kode'],
-            tipe: row['Tipe'] || row['tipe'],
-            kategori: row['Kategori'] || row['kategori'],
-            laboratorium: row['Laboratorium'] || row['laboratorium'],
-            total_stok: row['Total Stok'] || row['total_stok'],
-            stok_tersedia: row['Stok Tersedia'] || row['stok_tersedia'],
-            satuan: row['Satuan'] || row['satuan'],
-            kondisi: row['Kondisi'] || row['kondisi'],
-            lokasi: row['Lokasi Rak'] || row['lokasi'],
-            min_alert: row['Min Alert'] || row['min_alert'],
-            kadaluwarsa: row['Kadaluwarsa'] || row['kadaluwarsa'],
-            spesifikasi: row['Spesifikasi'] || row['spesifikasi']
+            nama: getString(row, 'Nama Item') || getString(row, 'nama'),
+            kode: getString(row, 'Kode Barang') || getString(row, 'kode'),
+            tipe: getString(row, 'Tipe') || getString(row, 'tipe'),
+            kategori: getString(row, 'Kategori') || getString(row, 'kategori'),
+            laboratorium: getString(row, 'Laboratorium') || getString(row, 'laboratorium'),
+            total_stok: getNumber(row, 'Total Stok') ?? getNumber(row, 'total_stok'),
+            stok_tersedia: getNumber(row, 'Stok Tersedia') ?? getNumber(row, 'stok_tersedia'),
+            satuan: getString(row, 'Satuan') || getString(row, 'satuan'),
+            kondisi: getString(row, 'Kondisi') || getString(row, 'kondisi'),
+            lokasi: getString(row, 'Lokasi Rak') || getString(row, 'lokasi'),
+            min_alert: getNumber(row, 'Min Alert') ?? getNumber(row, 'min_alert'),
+            kadaluwarsa: getString(row, 'Kadaluwarsa') || getString(row, 'kadaluwarsa'),
+            spesifikasi: getString(row, 'Spesifikasi') || getString(row, 'spesifikasi')
           }
 
           // Validation

@@ -33,6 +33,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const savedUser = localStorage.getItem("inventorium_user");
     if (savedUser) {
       try {
+        // Restore the persisted session during provider initialization.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setUser(JSON.parse(savedUser));
       } catch (e) {
         console.error("Failed to parse user session", e);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { DashboardStats, Lab } from "@/types/database";
+import { DashboardStats, Item, Lab } from "@/types/database";
 import {
   Package,
   FlaskConical,
@@ -20,6 +20,7 @@ export default function DashboardPage() {
     totalItems: 0,
     totalLabs: 0,
     lowStockAlerts: 0,
+    activeLoans: 0,
   });
   const [recentLabs, setRecentLabs] = useState<Lab[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,12 +38,13 @@ export default function DashboardPage() {
         const totalLabs = labs?.length || 0;
         const lowStockAlerts =
           items?.filter(
-            (item: any) => item.available_qty <= item.min_stock_alert,
+            (item: Item) => item.available_qty <= item.min_stock_alert,
           ).length || 0;
         setStats({
           totalItems,
           totalLabs,
           lowStockAlerts,
+          activeLoans: 0,
         });
 
         setRecentLabs(labs || []);
@@ -53,6 +55,7 @@ export default function DashboardPage() {
           totalItems: 0,
           totalLabs: 0,
           lowStockAlerts: 0,
+          activeLoans: 0,
         });
         setRecentLabs([]);
       } finally {
@@ -175,7 +178,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl p-6 text-white">
+      <div className="bg-linear-to-r from-emerald-500 to-emerald-600 rounded-xl p-6 text-white">
         <h2 className="text-lg font-semibold mb-4">Aksi Cepat</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Link
@@ -187,8 +190,7 @@ export default function DashboardPage() {
           </Link>
           <Link
             href="/dashboard/labs"
-            classNa
-            e="bg-white/20 hover:bg-white/30 transition rounded-lg p-4 text-center block"
+            className="bg-white/20 hover:bg-white/30 transition rounded-lg p-4 text-center block"
           >
             <FlaskConical className="w-6 h-6 mx-auto mb-2" />
             <span className="text-sm">Kelola Lab</span>

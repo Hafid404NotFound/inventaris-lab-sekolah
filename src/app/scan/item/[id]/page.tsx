@@ -4,16 +4,36 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { Package, MapPin, AlertTriangle, CheckCircle, FlaskConical, Building2, ArrowLeft } from 'lucide-react'
 
+interface PublicItem {
+  id: string
+  name: string
+  code: string
+  type: 'alat' | 'bahan'
+  available_qty: number
+  total_qty: number
+  unit: string
+  condition: string
+  location_rack: string
+  lab_name: string
+  school_name: string
+  specs_detail: string
+  sop: string
+  category: string
+  last_maintenance?: string
+  last_calibration?: string
+  expired_date?: string
+}
+
 export default function PublicItemPage() {
   const params = useParams()
   const itemId = params.id as string
-  const [item, setItem] = useState<any>(null)
+  const [item, setItem] = useState<PublicItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     // Mock data - in production this would fetch from Supabase
-    const mockItems: any = {
+    const mockItems: Record<string, PublicItem> = {
       '1': {
         id: '1',
         name: 'Mikroskop Binokuler',
@@ -81,7 +101,7 @@ export default function PublicItemPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-emerald-50 to-slate-100 flex items-center justify-center p-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
       </div>
     )
@@ -89,7 +109,7 @@ export default function PublicItemPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-emerald-50 to-slate-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-8 text-center">
           <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-slate-800 mb-2">Item Tidak Ditemukan</h2>
@@ -110,7 +130,7 @@ export default function PublicItemPage() {
   const stockColor = stockPercentage > 50 ? 'text-green-600' : stockPercentage > 20 ? 'text-amber-600' : 'text-red-600'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-slate-100">
+    <div className="min-h-screen bg-linear-to-br from-emerald-50 to-slate-100">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
@@ -242,7 +262,7 @@ export default function PublicItemPage() {
           <h3 className="font-semibold text-slate-800 mb-4">Aksi</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <button
-              onClick={() => window.location.href = '/dashboard/scan'}
+              onClick={() => window.location.assign('/dashboard/scan')}
               className="bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 transition font-medium flex items-center justify-center gap-2"
             >
               <Package className="w-4 h-4" />
@@ -271,7 +291,7 @@ export default function PublicItemPage() {
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-slate-500">
           <p>Scan QR Code untuk informasi real-time</p>
-          <p className="mt-1">© 2025 LabKu - Sistem Manajemen Lab Sekolah</p>
+          <p className="mt-1">© 2025 inventoriUM - Sistem Manajemen Lab Sekolah</p>
         </div>
       </div>
     </div>

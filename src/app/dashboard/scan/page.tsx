@@ -92,10 +92,10 @@ export default function ScanPage() {
           (decodedText) => handleScanSuccess(decodedText),
           () => {},
         );
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Gagal memulai scanner:", err);
         setScanError(
-          err?.message ||
+          (err instanceof Error ? err.message : undefined) ||
             "Tidak dapat mengakses kamera. Berikan izin akses kamera pada browser.",
         );
         setScanning(false);
@@ -177,7 +177,7 @@ export default function ScanPage() {
                 {scanning && (
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                     <div className="relative w-64 h-64 border-2 border-emerald-400/60 rounded-2xl overflow-hidden">
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#10b981] animate-scanner-laser" />
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#10b981] animate-scanner-laser" />
                     </div>
                   </div>
                 )}
@@ -299,7 +299,7 @@ export default function ScanPage() {
               </div>
 
               {/* Card Pintasan Navigasi */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 text-white shadow-sm space-y-3">
+              <div className="bg-linear-to-br from-slate-900 to-slate-800 rounded-2xl p-5 text-white shadow-sm space-y-3">
                 <h4 className="text-sm font-bold text-emerald-400">
                   Belum Punya Stiker QR?
                 </h4>

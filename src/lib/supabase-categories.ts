@@ -65,7 +65,7 @@ export async function getCategoryById(id: string) {
 export async function createCategory(category: Omit<Category, 'id' | 'created_at'>) {
   const { data, error } = await supabase
     .from('categories')
-    .insert([category as any])
+    .insert([category as unknown as Record<string, unknown>])
     .select()
     .single()
 
@@ -83,7 +83,7 @@ export async function createCategory(category: Omit<Category, 'id' | 'created_at
 export async function updateCategory(id: string, category: Partial<Category>) {
   const { data, error } = await supabase
     .from('categories')
-    .update(category as any)
+    .update(category as unknown as Record<string, unknown>)
     .eq('id', id)
     .select()
     .single()

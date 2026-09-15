@@ -29,7 +29,7 @@ export default function DeleteConfirmModal({ itemName, itemCount, onClose, onCon
           </div>
           <div>
             <p className="text-slate-800 mb-2">
-              Apakah Anda yakin ingin menghapus item <strong>"{itemName}"</strong>?
+              Apakah Anda yakin ingin menghapus item <strong>&quot;{itemName}&quot;</strong>?
             </p>
             {itemCount && itemCount > 0 && (
               <p className="text-sm text-amber-600 mb-2">

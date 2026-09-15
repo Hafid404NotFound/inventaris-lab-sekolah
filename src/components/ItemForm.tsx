@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Item, Lab, Room } from "@/types/database";
+import { Item, ItemCondition, Lab, Room } from "@/types/database";
 import { supabase } from "@/lib/supabase";
 import { getRooms } from "@/lib/supabase-rooms";
 import { Upload, X, Loader2 } from "lucide-react";
@@ -29,14 +29,14 @@ export default function ItemForm({
   const [code, setCode] = useState(item?.code || "");
   const [type, setType] = useState<"alat" | "bahan">(item?.type || "alat");
   const [categoryId, setCategoryId] = useState(
-    (item as any)?.category_id || "",
+    item?.category_id || "",
   );
   const [unit, setUnit] = useState(item?.unit || "pcs");
   const [totalQty, setTotalQty] = useState<number>(item?.total_qty || 1);
   const [availableQty, setAvailableQty] = useState<number>(
     item?.available_qty || 1,
   );
-  const [minStockAlert, setMinStockAlert] = useState<number>(
+  const [minStockAlert] = useState<number>(
     item?.min_stock_alert || 5,
   );
   const [condition, setCondition] = useState(item?.condition || "baik");
@@ -136,7 +136,7 @@ export default function ItemForm({
         lab_id: item?.lab_id || null,
         category_id: categoryId || null,
         updated_at: new Date().toISOString(),
-      } as any);
+      } as unknown as Omit<Item, "id" | "created_at">);
     } catch (err) {
       console.error(err);
     } finally {
@@ -277,7 +277,7 @@ export default function ItemForm({
               </label>
               <select
                 value={condition}
-                onChange={(e) => setCondition(e.target.value as any)}
+                onChange={(e) => setCondition(e.target.value as ItemCondition)}
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
               >
                 <option value="baik">Baik</option>

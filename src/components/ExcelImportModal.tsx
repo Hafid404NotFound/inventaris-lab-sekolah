@@ -2,19 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { Upload, Download, X, CheckCircle, AlertCircle, FileSpreadsheet } from 'lucide-react'
-import { parseExcelFile, downloadExcelTemplate, convertExcelToItem } from '@/utils/excelImport'
+import { parseExcelFile, downloadExcelTemplate, convertExcelToItem, ExcelItemData } from '@/utils/excelImport'
 import { Lab, Category } from '@/types/database'
 import { getCategoriesByLab } from '@/lib/supabase-categories'
 
 interface ExcelImportModalProps {
   labs: Lab[]
   onClose: () => void
-  onImport: (items: any[]) => void
+  onImport: (items: ReturnType<typeof convertExcelToItem>[]) => void
 }
 
 export default function ExcelImportModal({ labs, onClose, onImport }: ExcelImportModalProps) {
-  const [file, setFile] = useState<File | null>(null)
-  const [parsedData, setParsedData] = useState<any[]>([])
+  const [parsedData, setParsedData] = useState<ExcelItemData[]>([])
   const [errors, setErrors] = useState<string[]>([])
   const [isParsing, setIsParsing] = useState(false)
   const [selectedLab, setSelectedLab] = useState<string>('')
@@ -56,7 +55,6 @@ export default function ExcelImportModal({ labs, onClose, onImport }: ExcelImpor
       const result = await parseExcelFile(selectedFile)
       setParsedData(result.data)
       setErrors(result.errors)
-      setFile(selectedFile)
     } catch (error) {
       setErrors(['Gagal membaca file Excel. Pastikan format benar.'])
     } finally {

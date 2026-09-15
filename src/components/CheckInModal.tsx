@@ -113,7 +113,7 @@ export default function CheckInModal({ loan, itemName, onClose, onCheckIn }: Che
               </p>
               <ul className="text-sm text-amber-700 mt-2 list-disc list-inside">
                 <li>Dicatat di log riwayat kerusakan</li>
-                <li>Stok "kondisi baik" akan dikurangi</li>
+                <li>Stok &quot;kondisi baik&quot; akan dikurangi</li>
                 <li>Perlu tindak lanjut perbaikan/penggantian</li>
               </ul>
             </div>

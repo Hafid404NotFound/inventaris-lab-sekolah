@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getRooms, createRoom } from "@/lib/supabase-rooms";
 import { getLabById } from "@/lib/supabase-labs";
 import { supabase } from "@/lib/supabase";
-import { Room } from "@/types/database";
+import { Lab, Room } from "@/types/database";
 
 type RoomWithCount = Room & {
   items?: { count: number }[];
@@ -22,7 +22,7 @@ function RoomsPageContent() {
 
   const { user } = useAuth();
   const [rooms, setRooms] = useState<RoomWithCount[]>([]);
-  const [labData, setLabData] = useState<any>(null);
+  const [labData, setLabData] = useState<Lab | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -85,7 +85,11 @@ function RoomsPageContent() {
   };
 
   useEffect(() => {
+    // This effect loads remote data and intentionally updates loading state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchRoomData();
+    // fetchRoomData also depends on the authenticated user and selected lab.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramLabId, user?.lab_id]);
 
   const handleAddRoom = async (e: React.FormEvent) => {
@@ -118,10 +122,11 @@ function RoomsPageContent() {
       setNewDesc("");
       await fetchRoomData();
       alert("Ruangan berhasil ditambahkan!");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error adding room:", err);
+      const message = err instanceof Error ? err.message : undefined;
       alert(
-        `Gagal menambahkan ruangan: ${err?.message || "Pastikan kode belum digunakan"}`,
+        `Gagal menambahkan ruangan: ${message || "Pastikan kode belum digunakan"}`,
       );
     } finally {
       setSaving(false);
@@ -205,7 +210,7 @@ function RoomsPageContent() {
           {/* Table Data Ruangan */}
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px] table-fixed">
+              <table className="w-full min-w-175 table-fixed">
                 <thead className="border-b border-slate-200 bg-slate-50">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 w-16">

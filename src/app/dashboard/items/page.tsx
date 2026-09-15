@@ -232,7 +232,9 @@ export default function ItemsPage() {
     }
   };
 
-  const handleCreateItem = async (itemPayload: any) => {
+  const handleCreateItem = async (
+    itemPayload: Omit<Item, "id" | "created_at">,
+  ) => {
     try {
       // Pastikan lab_id selalu ada (ambil dari lab yang dipilih atau lab pertama)
       const validLabId =
@@ -250,10 +252,11 @@ export default function ItemsPage() {
       setItems((prev) => [newItem, ...prev]);
       setShowAddModal(false);
       alert("Item berhasil ditambahkan!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("❌ Error creating item:", error);
+      const message = error instanceof Error ? error.message : undefined;
       alert(
-        `Gagal menambahkan item: ${error?.message || "Periksa data input Anda"}`,
+        `Gagal menambahkan item: ${message || "Periksa data input Anda"}`,
       );
     }
   };

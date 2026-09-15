@@ -33,9 +33,11 @@ export async function getItemById(id: string) {
   return data;
 }
 
-export async function createItem(item: any) {
+type CreateItemInput = Partial<Item> & { name: string };
+
+export async function createItem(item: CreateItemInput) {
   // 1. Bersihkan semua nilai string kosong ("") menjadi null agar tidak error Foreign Key
-  const payloadToInsert: any = {
+  const payloadToInsert: Record<string, unknown> = {
     name: item.name,
     code:
       item.code && String(item.code).trim() !== ""

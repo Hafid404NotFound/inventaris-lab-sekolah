@@ -9,7 +9,6 @@ const supabaseAnonKey =
 
 // Deklarasi variabel global agar instans tidak terbuat berulang saat hot reload
 declare global {
-  // eslint-disable-next-line no-var
   var __supabaseInstance: SupabaseClient | undefined;
 }
 

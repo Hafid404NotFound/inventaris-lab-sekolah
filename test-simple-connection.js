@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Simple test untuk koneksi Supabase tanpa WebSocket
 // Jalankan dengan: node test-simple-connection.js
 
