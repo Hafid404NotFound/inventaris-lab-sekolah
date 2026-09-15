@@ -18,6 +18,7 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   login: (nup: string, password: string) => Promise<AuthUser>;
+  updateUser: (updates: Partial<Pick<AuthUser, "name" | "email">>) => void;
   logout: () => void;
   hasPermission: (allowedRoles: UserRole[]) => boolean;
 }
@@ -100,6 +101,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = "/login";
   };
 
+  const updateUser = (updates: Partial<Pick<AuthUser, "name" | "email">>) => {
+    setUser((currentUser) => {
+      if (!currentUser) return currentUser;
+      const updatedUser = { ...currentUser, ...updates };
+      localStorage.setItem("inventorium_user", JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  };
+
   const hasPermission = (allowedRoles: UserRole[]) => {
     if (!user) return false;
     return allowedRoles.includes(user.role);
@@ -107,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, login, logout, hasPermission }}
+      value={{ user, isLoading, login, updateUser, logout, hasPermission }}
     >
       {children}
     </AuthContext.Provider>

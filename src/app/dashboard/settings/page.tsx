@@ -1,17 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { getOrCreateDefaultSchool } from "@/lib/supabase-labs";
 import {
-  Settings,
   User,
   Building2,
   Bell,
   Shield,
   Database,
-  Palette,
   Save,
-  Camera,
   Mail,
   Phone,
   MapPin,
@@ -19,9 +18,58 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [saveMessage, setSaveMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+  const [school, setSchool] = useState({
+    name: "SMA Negeri 1 Jakarta",
+    address: "Jl. Pendidikan No. 1, Jakarta Pusat",
+    website: "",
+    email: "",
+  });
+  const [notifications, setNotifications] = useState({
+    stock_alert: true,
+    expiring_items: true,
+    loan_reminders: true,
+    damage_reports: true,
+    new_loans: true,
+  });
+  const [system, setSystem] = useState({
+    language: "id",
+    timezone: "Asia/Jakarta",
+    dateFormat: "DD/MM/YYYY",
+    theme: "light",
+  });
+  const [security, setSecurity] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  useEffect(() => {
+    // Initialize settings from the authenticated user and local browser storage.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setProfile({ name: user?.name || "", email: user?.email || "", phone: "" });
+    const savedSettings = localStorage.getItem("inventorium_settings");
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        setSchool((current) => ({ ...current, ...parsed.school }));
+        setNotifications((current) => ({ ...current, ...parsed.notifications }));
+        setSystem((current) => ({ ...current, ...parsed.system }));
+        setProfile((current) => ({ ...current, ...parsed.profile }));
+      } catch {
+        localStorage.removeItem("inventorium_settings");
+      }
+    }
+  }, [user]);
 
   const tabs = [
     { id: "profile", name: "Profil", icon: User },
@@ -31,9 +79,60 @@ export default function SettingsPage() {
     { id: "system", name: "Sistem", icon: Database },
   ];
 
-  const handleSave = () => {
-    setSaveMessage("Pengaturan berhasil disimpan!");
-    setTimeout(() => setSaveMessage(""), 3000);
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    setSaveMessage("");
+    setErrorMessage("");
+
+    try {
+      if (!profile.name.trim()) throw new Error("Nama lengkap wajib diisi.");
+      if (security.newPassword || security.confirmPassword || security.currentPassword) {
+        if (!security.currentPassword || !security.newPassword) {
+          throw new Error("Password saat ini dan password baru wajib diisi.");
+        }
+        if (security.newPassword !== security.confirmPassword) {
+          throw new Error("Konfirmasi password baru tidak cocok.");
+        }
+        if (security.newPassword.length < 6) {
+          throw new Error("Password baru minimal 6 karakter.");
+        }
+        const { data: account } = await supabase
+          .from("participant_accounts")
+          .select("id")
+          .eq("id", user.id)
+          .eq("password", security.currentPassword)
+          .maybeSingle();
+        if (!account) throw new Error("Password saat ini salah.");
+        await supabase
+          .from("participant_accounts")
+          .update({ password: security.newPassword })
+          .eq("id", user.id);
+      }
+
+      const { error: profileError } = await supabase
+        .from("participant_accounts")
+        .update({ name: profile.name.trim(), email: profile.email.trim() || null })
+        .eq("id", user.id);
+      if (profileError) throw profileError;
+
+      const schoolId = await getOrCreateDefaultSchool();
+      const { error: schoolError } = await supabase
+        .from("schools")
+        .upsert({ id: schoolId, name: school.name.trim() || "Sekolah", address: school.address.trim() || null }, { onConflict: "id" });
+      if (schoolError) throw schoolError;
+
+      const settings = { profile, school, notifications, system };
+      localStorage.setItem("inventorium_settings", JSON.stringify(settings));
+      localStorage.setItem("inventorium_user", JSON.stringify({ ...user, name: profile.name.trim(), email: profile.email.trim() || null }));
+      updateUser({ name: profile.name.trim(), email: profile.email.trim() || null });
+      setSecurity({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setSaveMessage("Pengaturan berhasil disimpan.");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Pengaturan gagal disimpan.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -50,6 +149,11 @@ export default function SettingsPage() {
       {saveMessage && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg">
           {saveMessage}
+        </div>
+      )}
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+          {errorMessage}
         </div>
       )}
 
@@ -89,9 +193,6 @@ export default function SettingsPage() {
                       {user?.name?.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <button className="absolute bottom-0 right-0 bg-emerald-600 text-white p-2 rounded-full hover:bg-emerald-700 transition">
-                    <Camera className="w-4 h-4" />
-                  </button>
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-slate-800">
@@ -110,7 +211,8 @@ export default function SettingsPage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue={user?.name}
+                    value={profile.name}
+                    onChange={(event) => setProfile({ ...profile, name: event.target.value })}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                   />
                 </div>
@@ -122,7 +224,8 @@ export default function SettingsPage() {
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                     <input
                       type="email"
-                      defaultValue={user?.email ?? ""}
+                      value={profile.email}
+                      onChange={(event) => setProfile({ ...profile, email: event.target.value })}
                       className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                     />
                   </div>
@@ -135,6 +238,8 @@ export default function SettingsPage() {
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                     <input
                       type="tel"
+                      value={profile.phone}
+                      onChange={(event) => setProfile({ ...profile, phone: event.target.value })}
                       placeholder="+62 xxx xxxx xxxx"
                       className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                     />
@@ -163,9 +268,6 @@ export default function SettingsPage() {
                   <div className="w-24 h-24 bg-slate-100 rounded-lg flex items-center justify-center border-2 border-dashed border-slate-300">
                     <Building2 className="w-8 h-8 text-slate-400" />
                   </div>
-                  <button className="absolute bottom-0 right-0 bg-emerald-600 text-white p-2 rounded-full hover:bg-emerald-700 transition">
-                    <Camera className="w-4 h-4" />
-                  </button>
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-slate-800">
@@ -184,7 +286,8 @@ export default function SettingsPage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue="SMA Negeri 1 Jakarta"
+                    value={school.name}
+                    onChange={(event) => setSchool({ ...school, name: event.target.value })}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                   />
                 </div>
@@ -206,7 +309,8 @@ export default function SettingsPage() {
                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                     <textarea
                       rows={3}
-                      defaultValue="Jl. Pendidikan No. 1, Jakarta Pusat"
+                      value={school.address}
+                      onChange={(event) => setSchool({ ...school, address: event.target.value })}
                       className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                     />
                   </div>
@@ -219,6 +323,8 @@ export default function SettingsPage() {
                     <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                     <input
                       type="url"
+                      value={school.website}
+                      onChange={(event) => setSchool({ ...school, website: event.target.value })}
                       placeholder="https://sekolah.sch.id"
                       className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                     />
@@ -230,6 +336,8 @@ export default function SettingsPage() {
                   </label>
                   <input
                     type="email"
+                      value={school.email}
+                      onChange={(event) => setSchool({ ...school, email: event.target.value })}
                     placeholder="info@sekolah.sch.id"
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                   />
@@ -290,10 +398,16 @@ export default function SettingsPage() {
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
-                        defaultChecked
+                        checked={notifications[item.id as keyof typeof notifications]}
+                        onChange={(event) =>
+                          setNotifications({
+                            ...notifications,
+                            [item.id]: event.target.checked,
+                          })
+                        }
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-slate-300 peer-focus:ring-2 peer-focus:ring-emerald-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600" />
+                      <div className="w-11 h-6 bg-slate-300 peer-focus:ring-2 peer-focus:ring-emerald-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600" />
                     </label>
                   </div>
                 ))}
@@ -313,6 +427,8 @@ export default function SettingsPage() {
                   </label>
                   <input
                     type="password"
+                    value={security.currentPassword}
+                    onChange={(event) => setSecurity({ ...security, currentPassword: event.target.value })}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                   />
                 </div>
@@ -322,6 +438,8 @@ export default function SettingsPage() {
                   </label>
                   <input
                     type="password"
+                    value={security.newPassword}
+                    onChange={(event) => setSecurity({ ...security, newPassword: event.target.value })}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                   />
                 </div>
@@ -331,6 +449,8 @@ export default function SettingsPage() {
                   </label>
                   <input
                     type="password"
+                    value={security.confirmPassword}
+                    onChange={(event) => setSecurity({ ...security, confirmPassword: event.target.value })}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                   />
                 </div>
@@ -382,7 +502,7 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Bahasa
                   </label>
-                  <select className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                  <select value={system.language} onChange={(event) => setSystem({ ...system, language: event.target.value })} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                     <option value="id">Bahasa Indonesia</option>
                     <option value="en">English</option>
                   </select>
@@ -391,7 +511,7 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Zona Waktu
                   </label>
-                  <select className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                  <select value={system.timezone} onChange={(event) => setSystem({ ...system, timezone: event.target.value })} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                     <option value="Asia/Jakarta">WIB (UTC+7)</option>
                     <option value="Asia/Makassar">WITA (UTC+8)</option>
                     <option value="Asia/Jayapura">WIT (UTC+9)</option>
@@ -401,7 +521,7 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Format Tanggal
                   </label>
-                  <select className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                  <select value={system.dateFormat} onChange={(event) => setSystem({ ...system, dateFormat: event.target.value })} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                     <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                     <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                     <option value="YYYY-MM-DD">YYYY-MM-DD</option>
@@ -431,8 +551,9 @@ export default function SettingsPage() {
                   ].map((theme) => (
                     <button
                       key={theme.id}
+                      onClick={() => setSystem({ ...system, theme: theme.id })}
                       className={`p-4 rounded-lg border-2 transition ${
-                        theme.id === "light"
+                        theme.id === system.theme
                           ? "border-emerald-500"
                           : "border-transparent"
                       }`}
@@ -456,7 +577,18 @@ export default function SettingsPage() {
                         Download semua data dalam format JSON
                       </p>
                     </div>
-                    <button className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">
+                    <button
+                      onClick={() => {
+                        const blob = new Blob([JSON.stringify({ profile, school, notifications, system }, null, 2)], { type: "application/json" });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.download = "inventorium-settings.json";
+                        link.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+                    >
                       Export
                     </button>
                   </div>
@@ -467,7 +599,17 @@ export default function SettingsPage() {
                         Hapus semua data dan reset ke default
                       </p>
                     </div>
-                    <button className="text-red-600 hover:text-red-700 text-sm font-medium">
+                    <button
+                      onClick={() => {
+                        if (window.confirm("Reset preferensi lokal? Data inventaris tidak akan dihapus.")) {
+                          localStorage.removeItem("inventorium_settings");
+                          setNotifications({ stock_alert: true, expiring_items: true, loan_reminders: true, damage_reports: true, new_loans: true });
+                          setSystem({ language: "id", timezone: "Asia/Jakarta", dateFormat: "DD/MM/YYYY", theme: "light" });
+                          setSaveMessage("Preferensi lokal berhasil direset.");
+                        }
+                      }}
+                      className="text-red-600 hover:text-red-700 text-sm font-medium"
+                    >
                       Reset
                     </button>
                   </div>
@@ -480,10 +622,11 @@ export default function SettingsPage() {
           <div className="pt-6 border-t border-slate-200">
             <button
               onClick={handleSave}
+              disabled={saving}
               className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition"
             >
               <Save className="w-5 h-5" />
-              <span>Simpan Perubahan</span>
+              <span>{saving ? "Menyimpan..." : "Simpan Perubahan"}</span>
             </button>
           </div>
         </div>
