@@ -6,6 +6,10 @@ ALTER TABLE schools
   ADD COLUMN IF NOT EXISTS website TEXT,
   ADD COLUMN IF NOT EXISTS email TEXT;
 
+ALTER TABLE participant_accounts
+  ADD COLUMN IF NOT EXISTS email TEXT,
+  ADD COLUMN IF NOT EXISTS role VARCHAR(30) DEFAULT 'peserta';
+
 CREATE TABLE IF NOT EXISTS user_settings (
   user_id UUID PRIMARY KEY,
   phone VARCHAR(50),

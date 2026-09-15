@@ -16,7 +16,19 @@ import {
   Phone,
   MapPin,
   Globe,
+  Users,
+  Pencil,
+  Trash2,
 } from "lucide-react";
+
+type Participant = {
+  id: string;
+  nup: string;
+  name: string;
+  email?: string | null;
+  role?: "super_admin" | "kepala_lab" | "peserta" | null;
+  lab_id?: string | null;
+};
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuth();
@@ -55,6 +67,17 @@ export default function SettingsPage() {
     newPassword: "",
     confirmPassword: "",
   });
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participantForm, setParticipantForm] = useState({
+    id: "",
+    nup: "",
+    name: "",
+    password: "",
+    email: "",
+    role: "peserta" as Participant["role"],
+  });
+  const [participantLoading, setParticipantLoading] = useState(false);
+  const [participantSaving, setParticipantSaving] = useState(false);
   const isAdmin = user?.role === "super_admin" || user?.role === "kepala_lab";
 
   useEffect(() => {
@@ -108,6 +131,21 @@ export default function SettingsPage() {
     void loadDatabaseSettings();
   }, [user]);
 
+  useEffect(() => {
+    if (!isAdmin) return;
+    const loadParticipants = async () => {
+      setParticipantLoading(true);
+      const { data, error } = await supabase
+        .from("participant_accounts")
+        .select("id, nup, name, email, role, lab_id")
+        .order("name", { ascending: true });
+      if (error) setErrorMessage(`Peserta gagal dimuat: ${error.message}`);
+      setParticipants((data || []) as Participant[]);
+      setParticipantLoading(false);
+    };
+    void loadParticipants();
+  }, [isAdmin]);
+
   if (!user || !isAdmin) return null;
 
   const tabs = [
@@ -116,7 +154,63 @@ export default function SettingsPage() {
     { id: "notifications", name: "Notifikasi", icon: Bell },
     { id: "security", name: "Keamanan", icon: Shield },
     { id: "system", name: "Sistem", icon: Database },
+    { id: "participants", name: "Peserta", icon: Users },
   ];
+
+  const resetParticipantForm = () => {
+    setParticipantForm({ id: "", nup: "", name: "", password: "", email: "", role: "peserta" });
+  };
+
+  const handleParticipantSave = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setErrorMessage("");
+    setSaveMessage("");
+    const nup = participantForm.nup.trim();
+    const name = participantForm.name.trim();
+    if (!nup || !name || (!participantForm.id && !participantForm.password)) {
+      setErrorMessage("NUP, nama, dan password wajib diisi untuk peserta baru.");
+      return;
+    }
+    setParticipantSaving(true);
+    try {
+      const payload = {
+        nup,
+        name,
+        email: participantForm.email.trim() || null,
+        role: participantForm.role || "peserta",
+        ...(participantForm.password ? { password: participantForm.password } : {}),
+      };
+      const query = participantForm.id
+        ? supabase.from("participant_accounts").update(payload).eq("id", participantForm.id).select("id, nup, name, email, role, lab_id").single()
+        : supabase.from("participant_accounts").insert(payload).select("id, nup, name, email, role, lab_id").single();
+      const { data, error } = await query;
+      if (error) throw error;
+      setParticipants((current) => participantForm.id
+        ? current.map((item) => item.id === participantForm.id ? data as Participant : item)
+        : [...current, data as Participant].sort((a, b) => a.name.localeCompare(b.name)));
+      resetParticipantForm();
+      setSaveMessage("Data peserta berhasil disimpan.");
+    } catch (error) {
+      setErrorMessage(`Peserta gagal disimpan: ${error instanceof Error ? error.message : "NUP mungkin sudah digunakan"}`);
+    } finally {
+      setParticipantSaving(false);
+    }
+  };
+
+  const handleParticipantDelete = async (participant: Participant) => {
+    if (participant.id === user.id) {
+      setErrorMessage("Akun admin yang sedang digunakan tidak dapat dihapus.");
+      return;
+    }
+    if (!window.confirm(`Hapus akun ${participant.name}?`)) return;
+    const { error } = await supabase.from("participant_accounts").delete().eq("id", participant.id);
+    if (error) {
+      setErrorMessage(`Peserta gagal dihapus: ${error.message}`);
+      return;
+    }
+    setParticipants((current) => current.filter((item) => item.id !== participant.id));
+    setSaveMessage("Peserta berhasil dihapus.");
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -260,6 +354,122 @@ export default function SettingsPage() {
 
         {/* Tab Content */}
         <div className="p-6">
+          {activeTab === "participants" && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-semibold text-slate-800">Kelola Peserta</h3>
+                <p className="text-sm text-slate-600 mt-1">
+                  Admin dapat membuat dan mengatur akun login peserta diklat.
+                </p>
+              </div>
+
+              <form onSubmit={handleParticipantSave} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">NUP</label>
+                  <input
+                    value={participantForm.nup}
+                    onChange={(event) => setParticipantForm({ ...participantForm, nup: event.target.value })}
+                    required
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Contoh: 0002"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Nama Peserta</label>
+                  <input
+                    value={participantForm.name}
+                    onChange={(event) => setParticipantForm({ ...participantForm, name: event.target.value })}
+                    required
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Nama lengkap"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Password {participantForm.id && <span className="font-normal text-slate-500">(kosongkan jika tidak berubah)</span>}
+                  </label>
+                  <input
+                    type="password"
+                    value={participantForm.password}
+                    onChange={(event) => setParticipantForm({ ...participantForm, password: event.target.value })}
+                    required={!participantForm.id}
+                    minLength={6}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Minimal 6 karakter"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Email (opsional)</label>
+                  <input
+                    type="email"
+                    value={participantForm.email}
+                    onChange={(event) => setParticipantForm({ ...participantForm, email: event.target.value })}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="peserta@email.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Hak Akses</label>
+                  <select
+                    value={participantForm.role || "peserta"}
+                    onChange={(event) => setParticipantForm({ ...participantForm, role: event.target.value as Participant["role"] })}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="peserta">Peserta</option>
+                    <option value="kepala_lab">Kepala Lab</option>
+                    <option value="super_admin">Super Admin</option>
+                  </select>
+                </div>
+                <div className="flex items-end gap-2">
+                  <button type="submit" disabled={participantSaving} className="bg-emerald-600 text-white px-5 py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+                    {participantSaving ? "Menyimpan..." : participantForm.id ? "Simpan Perubahan" : "Tambah Peserta"}
+                  </button>
+                  {participantForm.id && (
+                    <button type="button" onClick={resetParticipantForm} className="px-5 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-white">
+                      Batal
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              {participantLoading ? (
+                <p className="text-sm text-slate-500">Memuat daftar peserta...</p>
+              ) : participants.length === 0 ? (
+                <p className="text-sm text-slate-500">Belum ada akun peserta.</p>
+              ) : (
+                <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 text-left text-slate-600">
+                      <tr>
+                        <th className="px-4 py-3">NUP</th>
+                        <th className="px-4 py-3">Nama</th>
+                        <th className="px-4 py-3">Role</th>
+                        <th className="px-4 py-3 text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {participants.map((participant) => (
+                        <tr key={participant.id}>
+                          <td className="px-4 py-3 font-mono">{participant.nup}</td>
+                          <td className="px-4 py-3">{participant.name}</td>
+                          <td className="px-4 py-3 capitalize">{(participant.role || "peserta").replace("_", " ")}</td>
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            <button type="button" title="Edit peserta" onClick={() => setParticipantForm({ id: participant.id, nup: participant.nup, name: participant.name, password: "", email: participant.email || "", role: participant.role || "peserta" })} className="p-2 text-slate-600 hover:text-emerald-600">
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button type="button" title="Hapus peserta" onClick={() => void handleParticipantDelete(participant)} className="p-2 text-slate-600 hover:text-red-600">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Profile Tab */}
           {activeTab === "profile" && (
             <div className="space-y-6">
