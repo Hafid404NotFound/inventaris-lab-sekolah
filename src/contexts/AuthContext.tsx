@@ -73,12 +73,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // 2. Jika ditemukan, set data user resmi
+      const accountRole: UserRole =
+        data.role === "super_admin" || data.role === "kepala_lab"
+          ? data.role
+          : "peserta";
       const authenticatedUser: AuthUser = {
         id: data.id,
         nup: data.nup,
         name: data.name,
         email: data.email || null,
-        role: "peserta",
+        role: accountRole,
         lab_id: data.lab_id || null,
       };
 

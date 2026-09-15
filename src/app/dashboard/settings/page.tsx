@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { getOrCreateDefaultSchool } from "@/lib/supabase-labs";
@@ -19,6 +20,7 @@ import {
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("profile");
   const [saveMessage, setSaveMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -53,6 +55,11 @@ export default function SettingsPage() {
     newPassword: "",
     confirmPassword: "",
   });
+  const isAdmin = user?.role === "super_admin" || user?.role === "kepala_lab";
+
+  useEffect(() => {
+    if (user && !isAdmin) router.replace("/dashboard");
+  }, [isAdmin, router, user]);
 
   useEffect(() => {
     // Initialize settings from the authenticated user and local browser storage.
@@ -100,6 +107,8 @@ export default function SettingsPage() {
     };
     void loadDatabaseSettings();
   }, [user]);
+
+  if (!user || !isAdmin) return null;
 
   const tabs = [
     { id: "profile", name: "Profil", icon: User },

@@ -34,6 +34,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, logout } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+  const isAdmin = user?.role === 'super_admin' || user?.role === 'kepala_lab'
+  const visibleNavigation = navigation.filter(
+    (item) => item.href !== '/dashboard/settings' || isAdmin,
+  )
 
   const handleLogout = () => {
     logout()
@@ -83,7 +87,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {navigation.map((item) => {
+            {visibleNavigation.map((item) => {
               const isActive = pathname === item.href ||
                 (item.href === '/ruangan' && (pathname.startsWith('/ruangan') || pathname.startsWith('/inventaris/ruangan'))) ||
                 (item.href === '/dashboard/items' && (pathname.startsWith('/dashboard/items') || pathname.startsWith('/barang')))
@@ -134,7 +138,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             <div className="hidden lg:block">
               <h2 className="text-lg font-semibold text-slate-800">
-                {navigation.find((item) => item.href === pathname)?.name || 'Dashboard'}
+                {visibleNavigation.find((item) => item.href === pathname)?.name || 'Dashboard'}
               </h2>
             </div>
           </div>
