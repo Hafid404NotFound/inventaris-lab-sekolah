@@ -91,25 +91,26 @@ export default function ItemForm({
 
     try {
       setUploading(true);
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-      const filePath = `items/${fileName}`;
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const { error: uploadError } = await supabase.storage
-        .from("items")
-        .upload(filePath, file, { upsert: true });
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+      const result = (await response.json()) as {
+        base64?: string;
+        error?: string;
+      };
 
-      if (uploadError) throw uploadError;
+      if (!response.ok || !result.base64) {
+        throw new Error(result.error || "Upload gambar gagal");
+      }
 
-      const { data: publicData } = supabase.storage
-        .from("items")
-        .getPublicUrl(filePath);
-      setImageUrl(publicData.publicUrl);
+      setImageUrl(result.base64);
     } catch (err) {
       console.error("Gagal mengunggah foto:", err);
-      alert(
-        "Gagal mengunggah gambar. Pastikan bucket 'items' sudah diset Public.",
-      );
+      alert(err instanceof Error ? err.message : "Gagal mengunggah gambar.");
     } finally {
       setUploading(false);
     }
