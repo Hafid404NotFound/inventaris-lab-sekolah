@@ -17,6 +17,10 @@ export const metadata: Metadata = {
   title: "inventoriUM - Sistem Manajemen Lab Sekolah",
   description: "Sistem Manajemen & Inventaris Lab Sekolah",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico?v=2",
+    apple: "/logo.png?v=2",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -35,8 +39,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <link rel="icon" href="/icon.png" />
-        <link rel="apple-touch-icon" href="/icon.png" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2" />
+        <link rel="apple-touch-icon" href="/logo.png?v=2" />
       </head>
       <body className="min-h-full flex flex-col">
         <AuthProvider>{children}</AuthProvider>

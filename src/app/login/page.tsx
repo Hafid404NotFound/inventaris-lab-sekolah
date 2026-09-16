@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { LogIn, School, KeyRound, Lock, User } from "lucide-react";
+import Image from "next/image";
+import { LogIn, KeyRound, Lock, User } from "lucide-react";
 
 export default function LoginPage() {
   const [nup, setNup] = useState("");
@@ -47,9 +48,14 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 border border-white/20 sm:p-10">
         {/* Header Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100/90 text-emerald-700 rounded-2xl mb-4 shadow-sm ring-4 ring-emerald-50">
-            <School className="w-8 h-8" />
-          </div>
+          <Image
+            src="/logo.png"
+            alt="Logo Universitas Negeri Malang dan TUK FMIPA UM"
+            width={220}
+            height={220}
+            className="mx-auto mb-4 h-44 w-44 object-contain"
+            priority
+          />
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">
             inventoriUM
           </h1>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -63,9 +64,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center gap-3 p-6 border-b border-slate-700">
-            <div className="bg-emerald-500 p-2 rounded-lg">
-              <School className="w-6 h-6" />
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Logo Universitas Negeri Malang dan TUK FMIPA UM"
+              width={80}
+              height={80}
+              className="h-20 w-20 shrink-0 object-contain"
+            />
             <div>
               <h1 className="text-xl font-bold">inventoriUM</h1>
               <p className="text-xs text-slate-400">Manajemen Lab Sekolah</p>
