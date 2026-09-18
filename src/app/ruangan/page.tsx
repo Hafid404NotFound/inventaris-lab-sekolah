@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Printer, Lock } from "lucide-react";
+import { ArrowLeft, Plus, Printer, Lock, Pencil, Trash2 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import AuthGuard from "@/components/AuthGuard";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,6 +33,14 @@ function RoomsPageContent() {
   const [newDesc, setNewDesc] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // State Edit Ruangan
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editCode, setEditCode] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [updating, setUpdating] = useState(false);
+
   // Target lab yang sedang dibuka
   const targetLabId = paramLabId || user?.lab_id || undefined;
 
@@ -58,7 +66,6 @@ function RoomsPageContent() {
         setRooms((roomsResponse || []) as RoomWithCount[]);
         setLabData(labResponse);
 
-        // Jika lab ini cocok dengan NUP tapi participant_accounts.lab_id masih kosong, tautkan otomatis
         if (
           user?.nup &&
           (!user.lab_id || user.lab_id !== targetLabId) &&
@@ -85,10 +92,7 @@ function RoomsPageContent() {
   };
 
   useEffect(() => {
-    // This effect loads remote data and intentionally updates loading state.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchRoomData();
-    // fetchRoomData also depends on the authenticated user and selected lab.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramLabId, user?.lab_id]);
 
@@ -130,6 +134,83 @@ function RoomsPageContent() {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Handler Buka Modal Edit
+  const openEditModal = (room: Room) => {
+    setEditId(room.id);
+    setEditCode(room.code || "");
+    setEditName(room.name || "");
+    setEditDesc(room.description || "");
+    setShowEditModal(true);
+  };
+
+  // Handler Submit Update Ruangan
+  const handleUpdateRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isOwner || !editId) {
+      alert("Akses ditolak.");
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("rooms")
+        .update({
+          code: editCode.trim(),
+          name: editName.trim(),
+          description: editDesc.trim() || null,
+        })
+        .eq("id", editId);
+
+      if (error) throw error;
+
+      setShowEditModal(false);
+      setEditId(null);
+      await fetchRoomData();
+      alert("Data ruangan berhasil diperbarui!");
+    } catch (err: unknown) {
+      console.error("Error updating room:", err);
+      const message = err instanceof Error ? err.message : undefined;
+      alert(`Gagal memperbarui ruangan: ${message || "Terjadi kesalahan"}`);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Handler Hapus Ruangan
+  const handleDeleteRoom = async (room: RoomWithCount) => {
+    if (!isOwner) {
+      alert("Akses ditolak.");
+      return;
+    }
+
+    const itemCount = room.items?.[0]?.count ?? 0;
+    if (itemCount > 0) {
+      alert(
+        `Ruangan "${room.name}" tidak dapat dihapus karena masih memiliki ${itemCount} barang terkait.`,
+      );
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      `Apakah Anda yakin ingin menghapus ruangan "${room.name}"?`,
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const { error } = await supabase.from("rooms").delete().eq("id", room.id);
+
+      if (error) throw error;
+
+      await fetchRoomData();
+      alert("Ruangan berhasil dihapus!");
+    } catch (err: unknown) {
+      console.error("Error deleting room:", err);
+      const message = err instanceof Error ? err.message : undefined;
+      alert(`Gagal menghapus ruangan: ${message || "Terjadi kesalahan"}`);
     }
   };
 
@@ -183,7 +264,6 @@ function RoomsPageContent() {
                 <Printer className="h-4 w-4" /> Export / Print
               </button>
 
-              {/* Tombol Tambah Ruangan Muncul jika PEMILIK LAB */}
               {isOwner && (
                 <button
                   type="button"
@@ -210,7 +290,7 @@ function RoomsPageContent() {
           {/* Table Data Ruangan */}
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-175 table-fixed">
+              <table className="w-full min-w-[700px] table-fixed">
                 <thead className="border-b border-slate-200 bg-slate-50">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 w-16">
@@ -219,13 +299,13 @@ function RoomsPageContent() {
                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 w-44">
                       Kode Ruangan
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 w-64">
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 w-56">
                       Nama Ruangan
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
                       Keterangan
                     </th>
-                    <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-600 w-32">
+                    <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-600 w-48">
                       Aksi
                     </th>
                   </tr>
@@ -270,12 +350,35 @@ function RoomsPageContent() {
                             {room.description || "-"}
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <Link
-                              href={`/barang?room_id=${room.id}`}
-                              className="inline-block rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 transition"
-                            >
-                              {itemCount} Barang
-                            </Link>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <Link
+                                href={`/barang?room_id=${room.id}`}
+                                className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition"
+                                title="Lihat Daftar Barang"
+                              >
+                                {itemCount} Barang
+                              </Link>
+                              {isOwner && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditModal(room)}
+                                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-amber-600 transition"
+                                    title="Edit Ruangan"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRoom(room)}
+                                    className="p-1.5 rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition"
+                                    title="Hapus Ruangan"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -347,6 +450,71 @@ function RoomsPageContent() {
                     className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
                   >
                     {saving ? "Menyimpan..." : "Simpan Ruangan"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Edit Ruangan */}
+        {showEditModal && isOwner && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+              <h2 className="text-lg font-bold text-slate-800">Edit Ruangan</h2>
+              <form onSubmit={handleUpdateRoom} className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Kode Ruangan
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editCode}
+                    onChange={(e) => setEditCode(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Nama Ruangan
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Keterangan
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditId(null);
+                    }}
+                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updating}
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+                  >
+                    {updating ? "Menyimpan..." : "Simpan Perubahan"}
                   </button>
                 </div>
               </form>
