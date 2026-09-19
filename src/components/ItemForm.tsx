@@ -27,18 +27,16 @@ export default function ItemForm({
 }: ItemFormProps) {
   const [name, setName] = useState(item?.name || "");
   const [code, setCode] = useState(item?.code || "");
-  const [type, setType] = useState<"alat" | "bahan">(item?.type || "alat");
-  const [categoryId, setCategoryId] = useState(
-    item?.category_id || "",
+  const [type, setType] = useState<"alat" | "bahan">(
+    (item?.type as "alat" | "bahan") || "alat",
   );
+  const [categoryId, setCategoryId] = useState(item?.category_id || "");
   const [unit, setUnit] = useState(item?.unit || "pcs");
   const [totalQty, setTotalQty] = useState<number>(item?.total_qty || 1);
   const [availableQty, setAvailableQty] = useState<number>(
     item?.available_qty || 1,
   );
-  const [minStockAlert] = useState<number>(
-    item?.min_stock_alert || 5,
-  );
+  const [minStockAlert] = useState<number>(item?.min_stock_alert || 5);
   const [condition, setCondition] = useState(item?.condition || "baik");
   const [locationRack, setLocationRack] = useState(item?.location_rack || "");
   const [specsDetail, setSpecsDetail] = useState(item?.specs_detail || "");
@@ -66,7 +64,32 @@ export default function ItemForm({
 
         if (mounted) {
           setRooms(roomsData || []);
-          setCategories(catData || []);
+
+          // Saring kategori unik berdasarkan nama agar tidak berulang
+          const rawCats = catData || [];
+          const uniqueList: Category[] = [];
+          const seenNames = new Set<string>();
+
+          for (const c of rawCats) {
+            const cleanName = c.name?.trim();
+            if (cleanName && !seenNames.has(cleanName.toLowerCase())) {
+              seenNames.add(cleanName.toLowerCase());
+              uniqueList.push({ id: c.id, name: cleanName });
+            }
+          }
+
+          // Pastikan Tanaman Sekolah tetap ada di daftar jika belum masuk database
+          const hasTanaman = uniqueList.some((c) =>
+            c.name.toLowerCase().includes("tanaman"),
+          );
+          if (!hasTanaman && uniqueList.length > 0) {
+            uniqueList.push({
+              id: uniqueList[0].id,
+              name: "Tanaman Sekolah",
+            });
+          }
+
+          setCategories(uniqueList);
 
           if (!item?.room_id && roomsData && roomsData.length > 0) {
             setRoomId(roomsData[0].id);
