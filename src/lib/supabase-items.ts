@@ -1,13 +1,15 @@
 import { supabase } from "@/lib/supabase";
 import { Item } from "@/types/database";
 
+// String select standar agar struktur relasi selalu konsisten di semua fungsi
+const ITEM_SELECT_QUERY =
+  "*, labs(id, name), rooms(id, name, code, lab_id), categories(name)";
+
 export async function getItems(filters?: {
   room_id?: string;
   lab_id?: string;
 }) {
-  let query = supabase
-    .from("items")
-    .select("*, labs(name), rooms(id, name, code, lab_id), categories(name)");
+  let query = supabase.from("items").select(ITEM_SELECT_QUERY);
 
   if (filters?.room_id) {
     query = query.eq("room_id", filters.room_id);
@@ -25,7 +27,7 @@ export async function getItems(filters?: {
 export async function getItemById(id: string) {
   const { data, error } = await supabase
     .from("items")
-    .select("*, labs(name), rooms(name, code), categories(name)")
+    .select(ITEM_SELECT_QUERY)
     .eq("id", id)
     .single();
 
@@ -36,7 +38,7 @@ export async function getItemById(id: string) {
 type CreateItemInput = Partial<Item> & { name: string };
 
 export async function createItem(item: CreateItemInput) {
-  // 1. Bersihkan semua nilai string kosong ("") menjadi null agar tidak error Foreign Key
+  // Bersihkan nilai string kosong ("") menjadi null agar tidak melanggar foreign key
   const payloadToInsert: Record<string, unknown> = {
     name: item.name,
     code:
@@ -65,6 +67,7 @@ export async function createItem(item: CreateItemInput) {
       item.room_id && String(item.room_id).trim() !== "" ? item.room_id : null,
     lab_id:
       item.lab_id && String(item.lab_id).trim() !== "" ? item.lab_id : null,
+    is_locked: false,
     updated_at: new Date().toISOString(),
   };
 
@@ -75,7 +78,7 @@ export async function createItem(item: CreateItemInput) {
   const { data, error } = await supabase
     .from("items")
     .insert([payloadToInsert])
-    .select("*, labs(name), rooms(name, code), categories(name)")
+    .select(ITEM_SELECT_QUERY)
     .single();
 
   if (error) {
@@ -91,7 +94,7 @@ export async function updateItem(id: string, updates: Partial<Item>) {
     .from("items")
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq("id", id)
-    .select("*, labs(name), rooms(name, code), categories(name)")
+    .select(ITEM_SELECT_QUERY)
     .single();
 
   if (error) throw error;
@@ -112,7 +115,44 @@ export async function updateItemStock(id: string, newAvailableQty: number) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
-    .select()
+    .select(ITEM_SELECT_QUERY)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function unlockItem(id: string) {
+  const { data, error } = await supabase
+    .from("items")
+    .update({
+      is_locked: false,
+      locked_by: null,
+      locked_reason: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select(ITEM_SELECT_QUERY)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function toggleItemLock(
+  id: string,
+  isLocked: boolean,
+  userId?: string,
+) {
+  const { data, error } = await supabase
+    .from("items")
+    .update({
+      is_locked: isLocked,
+      locked_by: isLocked ? userId || null : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select(ITEM_SELECT_QUERY)
     .single();
 
   if (error) throw error;

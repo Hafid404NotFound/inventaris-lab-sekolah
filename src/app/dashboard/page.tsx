@@ -30,16 +30,37 @@ export default function DashboardPage() {
       try {
         setLoading(true);
 
-        // Fetch all data in parallel
-        const [labs, items] = await Promise.all([getLabs(), getItems()]);
+        // Fetch all data in parallel dengan fallback aman
+        const [rawLabs, rawItems] = await Promise.all([
+          Promise.resolve(getLabs()).catch((err) => {
+            console.error("Error fetching labs:", err);
+            return [];
+          }),
+          Promise.resolve(getItems()).catch((err) => {
+            console.error("Error fetching items:", err);
+            return [];
+          }),
+        ]);
+
+        // Pastikan selalu berbentuk array (baik return array langsung maupun { data })
+        const labs: Lab[] = Array.isArray(rawLabs)
+          ? rawLabs
+          : (rawLabs as any)?.data || [];
+        const items: Item[] = Array.isArray(rawItems)
+          ? rawItems
+          : (rawItems as any)?.data || [];
 
         // Calculate stats
-        const totalItems = items?.length || 0;
-        const totalLabs = labs?.length || 0;
-        const lowStockAlerts =
-          items?.filter(
-            (item: Item) => item.available_qty <= item.min_stock_alert,
-          ).length || 0;
+        const totalItems = items.length;
+        const totalLabs = labs.length;
+        const lowStockAlerts = items.filter(
+          (item: Item) =>
+            item &&
+            typeof item.available_qty === "number" &&
+            typeof item.min_stock_alert === "number" &&
+            item.available_qty <= item.min_stock_alert,
+        ).length;
+
         setStats({
           totalItems,
           totalLabs,
@@ -47,7 +68,7 @@ export default function DashboardPage() {
           activeLoans: 0,
         });
 
-        setRecentLabs(labs || []);
+        setRecentLabs(labs);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
         // Set default values on error

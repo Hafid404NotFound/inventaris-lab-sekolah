@@ -11,6 +11,7 @@ import {
   Edit,
   Trash2,
   Lock,
+  Unlock,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import AuthGuard from "@/components/AuthGuard";
@@ -22,6 +23,7 @@ import {
   updateItem,
   deleteItem,
   createItem,
+  toggleItemLock,
 } from "@/lib/supabase-items";
 import { getRoomById } from "@/lib/supabase-rooms";
 import { getLabs } from "@/lib/supabase-labs";
@@ -55,6 +57,7 @@ function GoodsPageContent() {
   const [roomName, setRoomName] = useState("");
   const [roomLabId, setRoomLabId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lockingId, setLockingId] = useState<string | null>(null);
 
   // State Modal Form & Delete
   const [showFormModal, setShowFormModal] = useState(false);
@@ -92,7 +95,6 @@ function GoodsPageContent() {
   }, [roomId]);
 
   // Hak Akses: Cek apakah user berhak menambah barang di halaman ini
-  // (Jika di filter ruangan peserta lain, tombol tambah disembunyikan)
   const canAddItem =
     !roomId ||
     (user?.lab_id && roomLabId === user.lab_id) ||
@@ -151,6 +153,34 @@ function GoodsPageContent() {
     }
   };
 
+  // Handler Toggle Lock / Unlock Item
+  const handleToggleLock = async (item: ItemRow) => {
+    try {
+      setLockingId(item.id);
+      const targetState = !item.is_locked;
+      const updated = await toggleItemLock(item.id, targetState, user?.id);
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id ? ({ ...i, ...updated } as ItemRow) : i,
+        ),
+      );
+      alert(
+        targetState
+          ? `Barang "${item.name}" berhasil dikunci.`
+          : `Kunci barang "${item.name}" berhasil dibuka (Unlocked)!`,
+      );
+    } catch (err: unknown) {
+      console.error("Error toggling lock:", err);
+      alert(
+        `Gagal mengubah status kunci: ${err instanceof Error ? err.message : "Terjadi kesalahan"}`,
+      );
+    } finally {
+      setLockingId(null);
+    }
+  };
+
+  const userRoomId = (user as unknown as { room_id?: string | null })?.room_id;
+
   return (
     <AuthGuard>
       <DashboardLayout>
@@ -175,7 +205,7 @@ function GoodsPageContent() {
               </p>
             </div>
 
-            {/* Tombol Tambah hanya aktif jika milik lab sendiri */}
+            {/* Tombol Tambah */}
             {canAddItem && (
               <button
                 type="button"
@@ -218,7 +248,7 @@ function GoodsPageContent() {
                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 w-32">
                       Ruangan
                     </th>
-                    <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-600 w-28">
+                    <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-600 w-36">
                       Aksi
                     </th>
                   </tr>
@@ -244,10 +274,24 @@ function GoodsPageContent() {
                     </tr>
                   ) : (
                     items.map((item, index) => {
-                      // Cek apakah barang ini adalah milik NUP peserta yang sedang login
-                      const isOwner =
-                        user?.role === "super_admin" ||
-                        (user?.lab_id && item.lab_id === user.lab_id);
+                      // PENGECEKAN HAK AKSES BARANG:
+                      const isSuperAdmin = user?.role === "super_admin";
+
+                      // 1. Cek apakah lab_id barang ATAU lab_id ruangan tempat barang berada sama dengan lab user
+                      const itemLabId = item.lab_id || item.rooms?.lab_id;
+                      const isSameLab = Boolean(
+                        user?.lab_id && itemLabId && itemLabId === user.lab_id,
+                      );
+
+                      // 2. Cek apakah ruangan sama dengan ruangan spesifik user (jika ada)
+                      const isSameRoom = Boolean(
+                        userRoomId &&
+                        item.room_id &&
+                        userRoomId === item.room_id,
+                      );
+
+                      // User dianggap pemilik (Owner) jika Super Admin, satu Lab/Sekolah, atau satu Ruangan
+                      const isOwner = isSuperAdmin || isSameLab || isSameRoom;
 
                       return (
                         <tr
@@ -261,17 +305,31 @@ function GoodsPageContent() {
                             {item.code || "-"}
                           </td>
                           <td className="px-6 py-4 max-w-xs">
-                            <Link
-                              href={`/barang/${item.id}`}
-                              className="font-medium text-emerald-700 hover:text-emerald-900 hover:underline block truncate"
-                              title={item.name}
-                            >
-                              {truncateWords(item.name, 5)}
-                            </Link>
+                            <div className="flex items-center gap-1.5">
+                              <Link
+                                href={`/barang/${item.id}`}
+                                className="font-medium text-emerald-700 hover:text-emerald-900 hover:underline block truncate"
+                                title={item.name}
+                              >
+                                {truncateWords(item.name, 5)}
+                              </Link>
+                              {item.is_locked && (
+                                <span
+                                  title="Barang Sedang Terkunci"
+                                  className="inline-flex shrink-0 items-center text-amber-600"
+                                >
+                                  <Lock className="h-3.5 w-3.5" />
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <span
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${item.type === "alat" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"}`}
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
+                                item.type === "alat"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-purple-100 text-purple-800"
+                              }`}
                             >
                               {item.type === "alat" ? (
                                 <Package className="h-3.5 w-3.5" />
@@ -302,9 +360,30 @@ function GoodsPageContent() {
                                 Detail
                               </Link>
 
-                              {/* Jika MILIK SENDIRI: muncul tombol Edit & Hapus */}
+                              {/* Jika MILIK SENDIRI / RUANGAN SENDIRI: muncul tombol Lock/Unlock, Edit & Hapus */}
                               {isOwner ? (
                                 <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleLock(item)}
+                                    disabled={lockingId === item.id}
+                                    className={`p-1 rounded transition disabled:opacity-50 ${
+                                      item.is_locked
+                                        ? "text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                                        : "text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                                    }`}
+                                    title={
+                                      item.is_locked
+                                        ? "Buka Kunci (Unlock)"
+                                        : "Kunci Barang (Lock)"
+                                    }
+                                  >
+                                    {item.is_locked ? (
+                                      <Lock className="h-4 w-4 text-amber-600" />
+                                    ) : (
+                                      <Unlock className="h-4 w-4" />
+                                    )}
+                                  </button>
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -330,8 +409,8 @@ function GoodsPageContent() {
                                   </button>
                                 </>
                               ) : (
-                                /* Jika MILIK ORANG LAIN: ikon gembok read-only */
-                                <span title="Read-only (Milik Peserta Lain)">
+                                /* Jika MILIK LAB LAIN: ikon gembok read-only */
+                                <span title="Read-only (Milik Peserta/Lab Lain)">
                                   <Lock className="h-3.5 w-3.5 text-slate-400" />
                                 </span>
                               )}
