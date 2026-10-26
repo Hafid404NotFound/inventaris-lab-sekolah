@@ -49,7 +49,7 @@ export default function LoginPage() {
         {/* Header Branding */}
         <div className="text-center mb-8">
           <Image
-            src="/logo.png"
+            src="/logo.svg"
             alt="Logo Universitas Negeri Malang dan TUK FMIPA UM"
             width={220}
             height={220}
